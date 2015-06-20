@@ -75,6 +75,7 @@ if (cluster.isMaster) {
     var app         = require('./lib/app');
     var redisClient = redis.createClient();
     var socketList = [];
+    redisClient.subscribe('toclient');
 
     var server = http.createServer(app);
     var io = sio(server);
@@ -82,6 +83,24 @@ if (cluster.isMaster) {
     var adapter = sio_redis({
         host: 'localhost',
         port: 6379
+    });
+
+    redisClient.on('message', function(channel, data) {
+        var clients = [];
+        var rooms = io.of('/');
+
+        if (channel === 'toclient') {
+            for (var id in rooms.connected) {
+                var wat = rooms.connected[id];
+                if (wat.handshake.query.token === data) {
+                    clients.push(wat);
+                }
+            }
+
+            clients.forEach(function(client) {
+                client.emit('wat', 'aheuahue');
+            });
+        }
     });
 
     io.use(function(socket, next) {
